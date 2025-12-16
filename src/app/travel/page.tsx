@@ -1532,7 +1532,7 @@ const App = () => {
                     return (
                       <div key={item.id} className="flex gap-4 relative group" onClick={() => setSelectedActivity(item)}>
                           {/* Same logic for Timeline Item */}
-                          <div className="w-16 flex-shrink-0 flex flex-col items-end pt-1 relative">
+                          <div className="w-16 shrink-0 flex flex-col items-end pt-1 relative">
                             <span className="font-serif text-lg font-medium text-stone-800">{item.time}</span>
                             <span className="text-[10px] text-stone-400 mt-1 uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-opacity">Details</span>
                             {index !== dayData.activities.length - 1 && (<div className="absolute top-10 right-[-17px] bottom-[-20px] w-[1px] bg-stone-200" />)}

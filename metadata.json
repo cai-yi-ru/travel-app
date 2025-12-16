@@ -1,0 +1,7 @@
+{
+  "name": "Hokkaido Trip Planner",
+  "description": "A comprehensive travel itinerary and expense tracking application optimized for mobile use.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

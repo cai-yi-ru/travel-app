@@ -1,65 +1,111 @@
-import Image from "next/image";
+
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { db, isFirebaseEnabled } from '../lib/firebase';
+import { DashboardView } from '../components/DashboardView';
+import { TripApp } from '../components/TripApp';
+import { useCloudSync } from '../hooks';
+import { INITIAL_TRIPS } from '../constants';
+import { TripMetadata, ItineraryData } from '../types';
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    // Determine which view to show: Dashboard or Specific Trip
+    // If tripId is null, show Dashboard.
+    const [currentTripId, setCurrentTripId] = useState<string | null>(null);
+    const [hasCheckedAutoSelect, setHasCheckedAutoSelect] = useState(false);
+    
+    // Manage list of trips globally
+    const [trips, setTrips] = useCloudSync<TripMetadata[]>('trip_list', INITIAL_TRIPS, 'app_metadata');
+
+    // Auto-select the trip if there is only one in the list (Initial Load only)
+    useEffect(() => {
+        if (!hasCheckedAutoSelect && trips.length > 0) {
+            if (trips.length === 1) {
+                setCurrentTripId(trips[0].id);
+            }
+            setHasCheckedAutoSelect(true);
+        }
+    }, [trips, hasCheckedAutoSelect]);
+
+    const handleSelectTrip = (id: string) => {
+        setCurrentTripId(id);
+    };
+
+    const handleAddTrip = (newTrip: TripMetadata) => {
+        setTrips([...trips, newTrip]);
+    };
+
+    const handleUpdateTrip = async (updatedTrip: TripMetadata) => {
+        // Find old trip to check if date changed
+        const oldTrip = trips.find(t => t.id === updatedTrip.id);
+
+        // 1. Update List (Syncs to trip_list via useCloudSync)
+        const newTrips = trips.map(t => t.id === updatedTrip.id ? updatedTrip : t);
+        setTrips(newTrips);
+
+        if (isFirebaseEnabled) {
+             try {
+                 // 2. Update Inner Info Document (Firestore) to ensure consistency when entering the trip
+                 const infoRef = doc(db, 'trips', updatedTrip.id, 'data', 'info');
+                 await setDoc(infoRef, { 
+                     value: { title: updatedTrip.title, subtitle: updatedTrip.subtitle }, 
+                     updatedAt: new Date() 
+                 }, { merge: true });
+
+                 // 3. Shift Itinerary Dates if start date changed
+                 if (oldTrip && oldTrip.startDate !== updatedTrip.startDate) {
+                    const oldStart = new Date(oldTrip.startDate);
+                    const newStart = new Date(updatedTrip.startDate);
+                    const diffTime = newStart.getTime() - oldStart.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays !== 0) {
+                        const itineraryRef = doc(db, 'trips', updatedTrip.id, 'data', 'itinerary');
+                        const docSnap = await getDoc(itineraryRef);
+                        
+                        if (docSnap.exists()) {
+                            const itinerary = docSnap.data().value as ItineraryData;
+                            const newItinerary = itinerary.map(day => {
+                                const d = new Date(day.date);
+                                d.setDate(d.getDate() + diffDays);
+                                const newDateStr = d.toISOString().split('T')[0];
+                                return { ...day, date: newDateStr };
+                            });
+                            
+                            await setDoc(itineraryRef, { value: newItinerary, updatedAt: new Date() }, { merge: true });
+                            console.log(`Itinerary dates shifted by ${diffDays} days`);
+                        }
+                    }
+                 }
+             } catch(e) { console.error("Failed to sync inner info or shift dates", e); }
+        }
+    };
+
+    const handleDeleteTrip = (id: string) => {
+        setTrips(trips.filter(t => t.id !== id));
+        if (currentTripId === id) setCurrentTripId(null);
+    };
+
+    // Render Dashboard if no trip selected
+    if (!currentTripId) {
+        return (
+            <DashboardView 
+                trips={trips}
+                onSelectTrip={handleSelectTrip}
+                onAddTrip={handleAddTrip}
+                onUpdateTrip={handleUpdateTrip}
+                onDeleteTrip={handleDeleteTrip}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+        );
+    }
+
+    // Render Trip Application if trip selected
+    return (
+        <TripApp 
+            tripId={currentTripId} 
+            onBack={() => setCurrentTripId(null)}
+        />
+    );
 }
