@@ -70,10 +70,10 @@ const AddUserModal = ({ onClose, onSave }: { onClose: () => void, onSave: (name:
 const TabBar = ({ activeTab, setActiveTab, onBack }: { activeTab: string, setActiveTab: (tab: string) => void, onBack: () => void }) => {
     return (
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center justify-between gap-1 p-1 bg-white/90 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full z-50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] w-[95vw] max-w-md overflow-x-auto hide-scrollbar px-3">
-        <button onClick={onBack} className={`flex-1 relative py-3 rounded-full flex flex-col items-center justify-center transition-all duration-300 group text-stone-400 hover:text-stone-600 hover:bg-stone-50`}>
+        {/* <button onClick={onBack} className={`flex-1 relative py-3 rounded-full flex flex-col items-center justify-center transition-all duration-300 group text-stone-400 hover:text-stone-600 hover:bg-stone-50`}>
           <LayoutGrid size={20} strokeWidth={2} className="mb-0.5 transition-transform group-active:scale-90" />
           <span className="text-[10px] font-bold tracking-wider whitespace-nowrap">旅程</span>
-        </button>
+        </button> */}
         <button onClick={() => setActiveTab('expenses')} className={`flex-1 relative py-3 rounded-full flex flex-col items-center justify-center transition-all duration-300 group ${activeTab === 'expenses' ? 'bg-stone-100 text-stone-900 shadow-inner' : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'}`}>
           <Wallet size={20} strokeWidth={activeTab === 'expenses' ? 2.5 : 2} className="mb-0.5 transition-transform group-active:scale-90" />
           <span className="text-[10px] font-bold tracking-wider whitespace-nowrap">記帳</span>
