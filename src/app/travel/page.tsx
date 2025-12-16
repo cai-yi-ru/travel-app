@@ -8,6 +8,7 @@ import {
   CloudSnow, CloudFog, CloudLightning, Loader2, Wine, Coffee, Eye, Edit2, Save, Plus, Trash2, Upload, Image as ImageIcon,
   Ticket
 } from 'lucide-react';
+import { WeatherCode } from '../../types';
 
 // --- Constants & API Config ---
 
@@ -19,7 +20,7 @@ const LOCATION_COORDS = {
   '小樽': { lat: 43.1907, lng: 140.9947 },
 };
 
-const getWeatherInfo = (code) => {
+const getWeatherInfo = (code: WeatherCode) => {
   if (code === 0) return { icon: Sun, label: '晴朗', color: 'text-orange-500' };
   if ([1, 2, 3].includes(code)) return { icon: CloudSun, label: '多雲時晴', color: 'text-blue-400' };
   if ([45, 48].includes(code)) return { icon: CloudFog, label: '有霧', color: 'text-stone-400' };
