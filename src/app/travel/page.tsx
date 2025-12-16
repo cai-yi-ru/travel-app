@@ -8,7 +8,7 @@ import {
   CloudSnow, CloudFog, CloudLightning, Loader2, Wine, Coffee, Eye, Edit2, Save, Plus, Trash2, Upload, Image as ImageIcon,
   Ticket
 } from 'lucide-react';
-import { WeatherCode } from '../../types';
+import { WeatherCode, Activity } from '../../types';
 
 // --- Constants & API Config ---
 
@@ -31,7 +31,7 @@ const getWeatherInfo = (code: WeatherCode) => {
 };
 
 // --- Helper Functions ---
-const getActivityColor = (type) => {
+const getActivityColor = (type: Activity['type']) => {
   switch(type) {
     case 'food': return { border: 'border-l-rose-400', tag: 'text-rose-600 bg-rose-50', bg: 'bg-rose-50' };
     case 'transport': return { border: 'border-l-sky-400', tag: 'text-sky-600 bg-sky-50', bg: 'bg-sky-50' };
@@ -42,7 +42,7 @@ const getActivityColor = (type) => {
   }
 };
 
-const getActivityIcon = (type) => {
+const getActivityIcon = (type: Activity['type']) => {
   switch(type) {
     case 'food': return <Utensils size={16} />;
     case 'transport': return <Car size={16} />;
