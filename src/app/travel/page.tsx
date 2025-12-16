@@ -8,7 +8,8 @@ import {
   CloudSnow, CloudFog, CloudLightning, Loader2, Wine, Coffee, Eye, Edit2, Save, Plus, Trash2, Upload, Image as ImageIcon,
   Ticket
 } from 'lucide-react';
-import { WeatherCode, Activity } from '../../types';
+import { WeatherCode, Activity, FlightInfo, DetailedInfo, Expense } from '../../types';
+import { LucideIcon } from 'lucide-react';
 
 // --- Constants & API Config ---
 
@@ -18,7 +19,9 @@ const LOCATION_COORDS = {
   '洞爺湖': { lat: 42.5896, lng: 140.8257 },
   '札幌': { lat: 43.0618, lng: 141.3545 },
   '小樽': { lat: 43.1907, lng: 140.9947 },
-};
+} as const;
+
+type LocationKey = keyof typeof LOCATION_COORDS;
 
 const getWeatherInfo = (code: WeatherCode) => {
   if (code === 0) return { icon: Sun, label: '晴朗', color: 'text-orange-500' };
@@ -55,14 +58,14 @@ const getActivityIcon = (type: Activity['type']) => {
 
 // --- Helper Hook for Drag-to-Scroll ---
 const useDraggableScroll = () => {
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const slider = ref.current;
     if (!slider) return;
     let isDown = false;
-    let startX;
-    let scrollLeft;
-    const onMouseDown = (e) => {
+    let startX: number;
+    let scrollLeft: number;
+    const onMouseDown = (e: MouseEvent) => {
       isDown = true;
       slider.classList.add('active');
       slider.style.cursor = 'grabbing';
@@ -79,7 +82,7 @@ const useDraggableScroll = () => {
       slider.classList.remove('active');
       slider.style.cursor = 'grab';
     };
-    const onMouseMove = (e) => {
+    const onMouseMove = (e: MouseEvent) => {
       if (!isDown) return;
       e.preventDefault();
       const x = e.pageX - slider.offsetLeft;
@@ -108,15 +111,84 @@ const USERS = [
   { id: 'G', name: 'Grace', color: 'bg-amber-100 text-amber-700' },
 ];
 
-const EXPENSES = [
-  { id: 1, title: '團費訂金', amount: 40000, payer: 'K', currency: 'TWD' },
-  { id: 2, title: '白色戀人伴手禮', amount: 5400, payer: 'M', currency: 'JPY' },
-  { id: 3, title: '函館朝市海鮮丼', amount: 8500, payer: 'K', currency: 'JPY' },
-  { id: 4, title: '便利商店零食', amount: 1200, payer: 'E', currency: 'JPY' },
+// --- Expense Item Component ---
+interface ExpenseItemProps {
+  expense: Expense;
+}
+
+const ExpenseItem = ({ expense }: ExpenseItemProps) => {
+  const user = USERS.find(u => u.id === expense.payer);
+  const userColor = user?.color || 'bg-gray-100 text-gray-700';
+  const amountInTWD = expense.currency === 'JPY' ? expense.amount * 0.22 : expense.amount;
+  
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-stone-100 last:border-0">
+      <div className="flex items-center gap-3 flex-1">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${userColor}`}>
+          {expense.payer}
+        </div>
+        <div className="flex-1">
+          <p className="font-medium text-stone-800">{expense.title}</p>
+          <p className="text-xs text-stone-400">{expense.date}</p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="font-bold text-stone-800">
+          {expense.currency} {expense.amount.toLocaleString()}
+        </p>
+        {expense.currency === 'JPY' && (
+          <p className="text-xs text-stone-400">≈ ${Math.round(amountInTWD).toLocaleString()}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const EXPENSES: Expense[] = [
+  { id: 1, title: '團費訂金', amount: 40000, payer: 'K', currency: 'TWD', date: 'Pre-trip', category: 'other' },
+  { id: 2, title: '白色戀人伴手禮', amount: 5400, payer: 'M', currency: 'JPY', date: 'Dec 23', category: 'shopping' },
+  { id: 3, title: '函館朝市海鮮丼', amount: 8500, payer: 'K', currency: 'JPY', date: 'Dec 22', category: 'food' },
+  { id: 4, title: '便利商店零食', amount: 1200, payer: 'E', currency: 'JPY', date: 'Dec 20', category: 'food' },
 ];
 
+// --- Tools Card Component ---
+interface ToolsCardProps {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  content: string;
+  colorClass: string;
+  onClick: () => void;
+}
+
+const ToolsCard = ({ icon: Icon, title, content, colorClass, onClick }: ToolsCardProps) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`${colorClass} p-4 rounded-xl border-2 border-current/20 hover:border-current/40 transition-all active:scale-95 flex flex-col items-center justify-center gap-2`}
+    >
+      <Icon size={24} />
+      <span className="font-bold text-sm">{title}</span>
+      <span className="text-lg font-mono font-bold">{content}</span>
+    </button>
+  );
+};
+
 // --- INITIAL ITINERARY DATA ---
-const INITIAL_ITINERARY_DATA = {
+type DayKey = 'Dec 20 Sat' | 'Dec 21 Sun' | 'Dec 22 Mon' | 'Dec 23 Tue' | 'Dec 24 Wed' | 'Dec 25 Thu';
+
+interface DayData {
+  location: string;
+  dayLabel: string;
+  heroImage: string;
+  title: string;
+  subtitle: string;
+  clothing: string;
+  handDrawnMap?: string | null;
+  activities: any[];
+  [key: string]: any;
+}
+
+const INITIAL_ITINERARY_DATA: Record<DayKey, DayData> = {
   'Dec 20 Sat': {
     location: '登別',
     dayLabel: 'Day 1', 
@@ -727,7 +799,7 @@ const INITIAL_ITINERARY_DATA = {
 };
 
 // --- New Component: Flight Ticket ---
-const FlightTicket = ({ data }) => (
+const FlightTicket = ({ data }: { data: FlightInfo }) => (
   <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden mb-6">
     {/* Header */}
     <div className="bg-stone-50 px-5 py-3 border-b border-stone-100 flex items-center gap-2">
@@ -781,7 +853,14 @@ const FlightTicket = ({ data }) => (
 );
 
 // --- New Component: Hourly Weather List ---
-const HourlyWeatherList = ({ weather }) => {
+interface HourlyWeatherItem {
+  time: string;
+  temp: number;
+  icon: LucideIcon;
+  color: string;
+}
+
+const HourlyWeatherList = ({ weather }: { weather: HourlyWeatherItem[] }) => {
   const scrollRef = useDraggableScroll();
   if (!weather || weather.length === 0) return <div className="text-xs text-stone-400 p-2">暫無每小時資料</div>;
   return (
@@ -803,14 +882,27 @@ const HourlyWeatherList = ({ weather }) => {
 };
 
 // --- New Component: Weather Widget ---
-const WeatherWidget = ({ data }) => {
+interface WeatherWidgetData {
+  location: LocationKey | string;
+  clothing?: string;
+}
+
+interface RealWeatherData {
+  condition: string;
+  tempRange: string;
+  icon: LucideIcon;
+  color: string;
+  hourly: HourlyWeatherItem[];
+}
+
+const WeatherWidget = ({ data }: { data: WeatherWidgetData }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [realWeather, setRealWeather] = useState(null);
+    const [realWeather, setRealWeather] = useState<RealWeatherData | null>(null);
     const [loading, setLoading] = useState(false);
     
     useEffect(() => {
         const fetchWeather = async () => {
-            const coords = LOCATION_COORDS[data.location];
+            const coords = data.location in LOCATION_COORDS ? LOCATION_COORDS[data.location as LocationKey] : undefined;
             if (!coords) return;
             setLoading(true);
             try {
@@ -910,16 +1002,34 @@ const WeatherWidget = ({ data }) => {
 };
 
 // --- New Component: Day Info Editor Modal ---
-const DayInfoEditModal = ({ dayKey, dayData, onClose, onSave }) => {
-    const [form, setForm] = useState({ ...dayData });
-    const fileInputRef = useRef(null);
+interface DayInfoEditModalProps {
+  dayKey: string;
+  dayData: {
+    location: string;
+    dayLabel: string;
+    heroImage: string;
+    title: string;
+    subtitle: string;
+    clothing?: string;
+    handDrawnMap?: string | null;
+    [key: string]: any; // Allow other properties
+  };
+  onClose: () => void;
+  onSave: (data: any) => void;
+}
 
-    const handleImageUpload = (e) => {
-        const file = e.target.files[0];
+const DayInfoEditModal = ({ dayKey, dayData, onClose, onSave }: DayInfoEditModalProps) => {
+    const [form, setForm] = useState({ ...dayData });
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
         if (file) {
           const reader = new FileReader();
           reader.onloadend = () => {
-            setForm({ ...form, heroImage: reader.result });
+            if (typeof reader.result === 'string') {
+              setForm({ ...form, heroImage: reader.result });
+            }
           };
           reader.readAsDataURL(file);
         }
@@ -941,7 +1051,7 @@ const DayInfoEditModal = ({ dayKey, dayData, onClose, onSave }) => {
                                 value={form.heroImage?.startsWith('data:') ? '' : form.heroImage}
                                 onChange={e => setForm({...form, heroImage: e.target.value})}
                             />
-                            <button onClick={() => fileInputRef.current.click()} className="bg-stone-100 p-2 rounded border border-stone-200">
+                            <button onClick={() => fileInputRef.current?.click()} className="bg-stone-100 p-2 rounded border border-stone-200">
                                 <Upload size={16} />
                             </button>
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -982,7 +1092,14 @@ const DayInfoEditModal = ({ dayKey, dayData, onClose, onSave }) => {
 }
 
 // --- Components (DetailModal, TabBar, etc.) ---
-const TabBar = ({ activeTab, setActiveTab }) => {
+type TabType = 'expenses' | 'itinerary' | 'tools';
+
+interface TabBarProps {
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
+}
+
+const TabBar = ({ activeTab, setActiveTab }: TabBarProps) => {
     // ... (TabBar code remains same)
     return (
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full z-50 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.16)] max-w-[90vw]">
@@ -1002,12 +1119,18 @@ const TabBar = ({ activeTab, setActiveTab }) => {
     );
   };
 
-const DetailModal = ({ activity, onClose, onSave }) => {
+interface DetailModalProps {
+  activity: Activity | null;
+  onClose: () => void;
+  onSave: (activity: Activity) => void;
+}
+
+const DetailModal = ({ activity, onClose, onSave }: DetailModalProps) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [editForm, setEditForm] = useState(activity ? { ...activity } : {});
+    const [editForm, setEditForm] = useState<Partial<Activity>>(activity ? { ...activity } : {});
     const [showFullScreen, setShowFullScreen] = useState(false);
-    const [fullScreenContent, setFullScreenContent] = useState(null);
-    const fileInputRef = useRef(null);
+    const [fullScreenContent, setFullScreenContent] = useState<{ jp: string; tw?: string } | string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
   
     useEffect(() => {
         if (activity) {
@@ -1017,14 +1140,22 @@ const DetailModal = ({ activity, onClose, onSave }) => {
   
     if (!activity) return null;
   
-    const handleCopy = (text) => { alert(`Copied: ${text}`); };
-    const openFullScreen = (jp, tw) => {
-        setFullScreenContent({ jp, tw });
+    const handleCopy = (text: string) => { alert(`Copied: ${text}`); };
+    const openFullScreen = (jp: string, tw?: string) => {
+        // If it's an image URL (starts with http or data:), set as string
+        if (jp.startsWith('http') || jp.startsWith('data:')) {
+            setFullScreenContent(jp);
+        } else {
+            // Otherwise, set as object with jp and optional tw
+            setFullScreenContent({ jp, tw });
+        }
         setShowFullScreen(true);
     };
   
     const handleSave = () => {
-        onSave(editForm);
+        if (activity && editForm.id) {
+            onSave(editForm as Activity);
+        }
         setIsEditing(false);
     };
 
@@ -1032,13 +1163,15 @@ const DetailModal = ({ activity, onClose, onSave }) => {
         if(isEditing) {
             setIsEditing(false);
             // Reset form to original activity data
-            setEditForm({ ...activity });
+            if (activity) {
+                setEditForm({ ...activity });
+            }
         } else {
             onClose();
         }
     };
   
-    const updateDetailedInfo = (index, field, value) => {
+    const updateDetailedInfo = (index: number, field: keyof DetailedInfo, value: string) => {
         const newDetails = [...(editForm.detailedInfo || [])];
         newDetails[index] = { ...newDetails[index], [field]: value };
         setEditForm({ ...editForm, detailedInfo: newDetails });
@@ -1051,19 +1184,21 @@ const DetailModal = ({ activity, onClose, onSave }) => {
         });
     };
 
-    const removeDetailedInfo = (index) => {
+    const removeDetailedInfo = (index: number) => {
         const newDetails = [...(editForm.detailedInfo || [])];
         newDetails.splice(index, 1);
         setEditForm({ ...editForm, detailedInfo: newDetails });
     };
   
-    // Image Upload Handler
-    const handleImageUpload = (e) => {
-      const file = e.target.files[0];
+    // Image Upload Handler  
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
       if (file) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setEditForm({ ...editForm, image: reader.result });
+          if (typeof reader.result === 'string') {
+            setEditForm({ ...editForm, image: reader.result });
+          }
         };
         reader.readAsDataURL(file);
       }
@@ -1117,7 +1252,7 @@ const DetailModal = ({ activity, onClose, onSave }) => {
                         {/* File Upload Button */}
                         <div className="flex items-center gap-2">
                             <button 
-                                onClick={() => fileInputRef.current.click()}
+                                onClick={() => fileInputRef.current?.click()}
                                 className="flex items-center gap-2 px-4 py-2 bg-stone-100 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-200 transition-colors w-full justify-center"
                             >
                                 <Upload size={16} />
@@ -1157,7 +1292,7 @@ const DetailModal = ({ activity, onClose, onSave }) => {
                                 type="text" 
                                 className="w-full p-2 border border-stone-200 rounded-lg text-sm uppercase"
                                 value={editForm.type || ''}
-                                onChange={e => setEditForm({...editForm, type: e.target.value})}
+                                onChange={e => setEditForm({...editForm, type: e.target.value as Activity['type']})}
                             />
                         </div>
                      </div>
@@ -1329,7 +1464,7 @@ const DetailModal = ({ activity, onClose, onSave }) => {
                             )}
                             {activity.gpsPhone && (
                                 <div className="flex items-center gap-4">
-                                    <button onClick={() => handleCopy(activity.gpsPhone)} className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-full text-stone-600">
+                                    <button onClick={() => activity.gpsPhone && handleCopy(activity.gpsPhone)} className="w-10 h-10 flex items-center justify-center bg-stone-50 rounded-full text-stone-600">
                                         <Navigation size={18} />
                                     </button>
                                     <div>
@@ -1375,7 +1510,7 @@ const DetailModal = ({ activity, onClose, onSave }) => {
                                 src={activity.image} 
                                 alt={activity.title} 
                                 className="w-full h-48 object-cover cursor-pointer" 
-                                onClick={() => openFullScreen(activity.image)} // Enable fullscreen on click
+                                onClick={() => activity.image && openFullScreen(activity.image)} // Enable fullscreen on click
                             />
                         </div>
                     )}
@@ -1397,12 +1532,12 @@ const DetailModal = ({ activity, onClose, onSave }) => {
                     {/* Check if content is image URL or text */}
                     {typeof fullScreenContent === 'string' && (fullScreenContent.startsWith('http') || fullScreenContent.startsWith('data:')) ? (
                          <img src={fullScreenContent} alt="Fullscreen" className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl" />
-                    ) : (
+                    ) : typeof fullScreenContent === 'object' && fullScreenContent !== null ? (
                         <>
                             <h1 className="text-[10vw] font-black text-stone-900 leading-tight font-serif break-words px-4">{fullScreenContent.jp}</h1>
                             {fullScreenContent.tw && <p className="text-2xl text-stone-500 font-medium">( {fullScreenContent.tw} )</p>}
                         </>
-                    )}
+                    ) : null}
                 </div>
             </div>
         )}
@@ -1415,18 +1550,18 @@ const DetailModal = ({ activity, onClose, onSave }) => {
 // I'll include the full App component here for completeness
 const App = () => {
     // ... (Existing state and hooks)
-    const [activeTab, setActiveTab] = useState('itinerary');
-    const [selectedDay, setSelectedDay] = useState('Dec 20 Sat');
-    const [selectedActivity, setSelectedActivity] = useState(null);
+    const [activeTab, setActiveTab] = useState<TabType>('itinerary');
+    const [selectedDay, setSelectedDay] = useState<DayKey>('Dec 20 Sat');
+    const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
     const [showDriverCard, setShowDriverCard] = useState(false);
     const [expenseFilter, setExpenseFilter] = useState('ALL');
     
     // Use State for Itinerary Data to allow edits
-    const [itineraryData, setItineraryData] = useState(INITIAL_ITINERARY_DATA);
-    const [editDayModal, setEditDayModal] = useState(null);
+    const [itineraryData, setItineraryData] = useState<Record<DayKey, DayData>>(INITIAL_ITINERARY_DATA);
+    const [editDayModal, setEditDayModal] = useState<DayData | null>(null);
     
     // Hand-drawn map fullscreen state
-    const [fullScreenMap, setFullScreenMap] = useState(null);
+    const [fullScreenMap, setFullScreenMap] = useState<string | null>(null);
   
     const dateScrollRef = useDraggableScroll();
     const expenseScrollRef = useDraggableScroll();
@@ -1437,8 +1572,8 @@ const App = () => {
        return sum + amountInTWD;
     }, 0);
   
-    const handleSaveActivity = (updatedActivity) => {
-        const newDayActivities = dayData.activities.map(act => 
+    const handleSaveActivity = (updatedActivity: Activity) => {
+        const newDayActivities = dayData.activities.map((act: Activity) => 
             act.id === updatedActivity.id ? updatedActivity : act
         );
         setItineraryData({
@@ -1451,7 +1586,7 @@ const App = () => {
         setSelectedActivity(updatedActivity); // Update modal view immediately
     };
     
-    const handleSaveDayInfo = (updatedDayInfo) => {
+    const handleSaveDayInfo = (updatedDayInfo: DayData) => {
         setItineraryData({
             ...itineraryData,
             [selectedDay]: updatedDayInfo
@@ -1459,19 +1594,21 @@ const App = () => {
         setEditDayModal(null);
     };
   
-    const handleMapUpload = (e) => {
-        const file = e.target.files[0];
+    const handleMapUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                const updatedDay = { ...dayData, handDrawnMap: reader.result };
-                setItineraryData({ ...itineraryData, [selectedDay]: updatedDay });
+                if (typeof reader.result === 'string') {
+                  const updatedDay = { ...dayData, handDrawnMap: reader.result };
+                  setItineraryData({ ...itineraryData, [selectedDay]: updatedDay });
+                }
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const mapInputRef = useRef(null);
+    const mapInputRef = useRef<HTMLInputElement>(null);
   
     return (
       <div className="min-h-screen bg-stone-50 font-sans pb-32 max-w-md mx-auto relative overflow-hidden shadow-2xl">
@@ -1486,7 +1623,7 @@ const App = () => {
                 {Object.keys(INITIAL_ITINERARY_DATA).map((dateKey) => (
                   <button
                     key={dateKey}
-                    onClick={() => setSelectedDay(dateKey)}
+                    onClick={() => setSelectedDay(dateKey as DayKey)}
                     className={`flex flex-col items-center justify-center min-w-[3rem] py-2 transition-all duration-300 snap-center group ${
                       selectedDay === dateKey 
                         ? 'text-stone-900 scale-110' 
@@ -1576,7 +1713,7 @@ const App = () => {
                                </button>
                             )}
                             <button 
-                              onClick={() => mapInputRef.current.click()} 
+                              onClick={() => mapInputRef.current?.click()} 
                               className="text-stone-400 hover:text-stone-900 transition-colors"
                             >
                                 <Edit2 size={16} />
@@ -1592,12 +1729,12 @@ const App = () => {
                     </div>
                     
                     {dayData.handDrawnMap ? (
-                        <div className="w-full rounded-2xl overflow-hidden shadow-md border border-stone-100 bg-white cursor-pointer" onClick={() => setFullScreenMap(dayData.handDrawnMap)}>
+                        <div className="w-full rounded-2xl overflow-hidden shadow-md border border-stone-100 bg-white cursor-pointer" onClick={() => dayData.handDrawnMap && setFullScreenMap(dayData.handDrawnMap)}>
                             <img src={dayData.handDrawnMap} alt="Journey Map" className="w-full h-auto object-cover" />
                         </div>
                     ) : (
                         <button 
-                          onClick={() => mapInputRef.current.click()}
+                          onClick={() => mapInputRef.current?.click()}
                           className="w-full h-48 rounded-2xl border-2 border-dashed border-stone-200 flex flex-col items-center justify-center gap-2 text-stone-400 hover:bg-stone-50 hover:border-stone-300 transition-all"
                         >
                             <ImageIcon size={32} className="opacity-50" />
