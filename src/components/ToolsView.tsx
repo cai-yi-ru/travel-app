@@ -296,7 +296,7 @@ export const ToolsView = ({ tripId, onReset }: { tripId?: string, onReset?: () =
                         <Plus size={20} /> 新增指指通
                     </button>
 
-                    <a href="https://vjw-lp.digital.go.jp/en/" target="_blank" rel="noreferrer" className="block active:scale-[0.98] transition-transform mt-4">
+                    {/* <a href="https://vjw-lp.digital.go.jp/en/" target="_blank" rel="noreferrer" className="block active:scale-[0.98] transition-transform mt-4">
                         <div className="w-full bg-stone-900 p-5 rounded-2xl shadow-lg flex items-center justify-between text-white">
                             <div className="flex items-center gap-4">
                                 <div className="p-2 bg-white/10 rounded-lg">
@@ -308,11 +308,11 @@ export const ToolsView = ({ tripId, onReset }: { tripId?: string, onReset?: () =
                                 </div>
                             </div>
                         </div>
-                    </a>
+                    </a> */}
                 </section>
                 
                 {/* 4. Settings */}
-                {onReset && (
+                {/* {onReset && (
                     <section className="space-y-3">
                          <h2 className="text-xs font-bold text-stone-400 uppercase tracking-widest ml-1">資料管理</h2>
                          
@@ -321,7 +321,7 @@ export const ToolsView = ({ tripId, onReset }: { tripId?: string, onReset?: () =
                              重置所有資料 (Local Reset)
                          </button>
                     </section>
-                )}
+                )} */}
             </div>
             
             <div className="mt-12 text-center pb-8">
