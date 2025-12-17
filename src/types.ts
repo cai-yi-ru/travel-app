@@ -102,6 +102,7 @@ export interface Coupon {
     description?: string;
     image?: string; // For barcode or QR code
     expiryDate?: string;
+    url?: string; // 超連結
 }
 
 export interface TripMetadata {

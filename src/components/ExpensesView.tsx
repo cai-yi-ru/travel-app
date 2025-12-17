@@ -83,7 +83,7 @@ const UserEditModal = ({ user, onClose, onSave, onDelete }: { user: UserData, on
 };
 
 // --- Expense Item Component ---
-const ExpenseItem = React.memo(({ expense, onViewImage, onEdit, userColor, rate }: { expense: Expense, onViewImage: (img: string) => void, onEdit: () => void, userColor: string, rate: number }) => {
+const ExpenseItem = React.memo(({ expense, onViewImage, onEdit, userColor, rate, users }: { expense: Expense, onViewImage: (img: string) => void, onEdit: () => void, userColor: string, rate: number, users: UserData[] }) => {
     const categoryConfig = EXPENSE_CATEGORIES.find(c => c.value === expense.category) || EXPENSE_CATEGORIES[5]; 
     const CategoryIcon = categoryConfig.icon;
     
@@ -91,6 +91,10 @@ const ExpenseItem = React.memo(({ expense, onViewImage, onEdit, userColor, rate 
 
     const approxTWD = expense.currency === 'JPY' ? Math.round(expense.amount * rate) : expense.amount;
     const isJPY = expense.currency === 'JPY';
+    
+    // 根據 payer id 找到對應的 user name
+    const payerUser = users.find(u => u.id === expense.payer);
+    const payerName = payerUser?.name || expense.payer;
 
     return (
       <div 
@@ -114,7 +118,7 @@ const ExpenseItem = React.memo(({ expense, onViewImage, onEdit, userColor, rate 
              <div className="flex items-center gap-2">
                  <span className={`text-[10px] px-1.5 py-px rounded border border-stone-200 text-stone-500 font-mono flex items-center gap-1 bg-white`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${userColor.replace('bg-', 'bg-').replace('100', '400')}`}></span>
-                    {expense.payer}
+                    {payerName}
                  </span>
                  <span className="text-[10px] text-[#888] font-mono tracking-wider">{expense.date}</span>
              </div>
@@ -128,7 +132,7 @@ const ExpenseItem = React.memo(({ expense, onViewImage, onEdit, userColor, rate 
                  {expense.amount.toLocaleString()}
                </div>
                {isJPY && (
-                 <p className="text-[10px] text-[#999] font-serif mt-0.5">≈ {approxTWD.toLocaleString()}</p>
+                 <p className="text-[10px] text-[#999] font-serif mt-0.5">≈ NT$ {approxTWD.toLocaleString()}</p>
                )}
             </div>
             <div className="w-6 flex justify-center text-stone-300">
@@ -560,6 +564,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ expenses, users, onS
                     onEdit={() => setModalData({ isOpen: true, editingExpense: expense })}
                     userColor={users.find(u => u.id === expense.payer)?.color || 'bg-gray-100'}
                     rate={rate}
+                    users={users}
                  />
              ))}
 

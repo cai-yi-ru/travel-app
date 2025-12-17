@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { 
     CheckSquare, ShoppingCart, Ticket, Plus, Trash2, X, Upload, 
-    Calendar, Image as ImageIcon, Check, ChevronDown, ChevronUp, Edit2, Loader2, User, MinusCircle, LayoutGrid
+    Calendar, Image as ImageIcon, Check, ChevronDown, ChevronUp, Edit2, Loader2, User, MinusCircle, LayoutGrid, ExternalLink
 } from 'lucide-react';
 import { ChecklistItem, Coupon, UserData } from '../types';
 import { useImageUpload, useDraggableScroll } from '../hooks';
@@ -514,7 +514,8 @@ const CouponModal = ({ coupon, onClose, onSave, onDelete }: { coupon?: Coupon, o
         title: coupon?.title || '',
         description: coupon?.description || '',
         expiryDate: coupon?.expiryDate || '',
-        image: coupon?.image || ''
+        image: coupon?.image || '',
+        url: coupon?.url || ''
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { uploadImage, isUploading } = useImageUpload();
@@ -544,11 +545,21 @@ const CouponModal = ({ coupon, onClose, onSave, onDelete }: { coupon?: Coupon, o
                     </div>
                     <div>
                         <label className="text-xs font-bold text-stone-400 mb-1 block">優惠內容 / 說明</label>
-                        <input type="text" className="w-full p-2 border rounded-lg" value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="例如: 免稅 10% + 5%" />
+                        <textarea 
+                            className="w-full p-2 border rounded-lg resize-none" 
+                            rows={3}
+                            value={form.description} 
+                            onChange={e => setForm({...form, description: e.target.value})} 
+                            placeholder="例如: 免稅 10% + 5%&#10;或更多說明..." 
+                        />
                     </div>
                     <div>
                         <label className="text-xs font-bold text-stone-400 mb-1 block">有效期限</label>
                         <input type="date" className="w-full p-2 border rounded-lg" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="text-xs font-bold text-stone-400 mb-1 block">超連結 (選填)</label>
+                        <input type="url" className="w-full p-2 border rounded-lg" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://..." />
                     </div>
                     
                     <div>
@@ -610,7 +621,21 @@ const CouponsTab = ({ coupons, onAdd, onUpdate, onDelete, onViewImage }: {
                              </div>
                              <div className="flex-1">
                                  <h3 className="font-bold text-lg text-stone-800">{coupon.title}</h3>
-                                 <p className="text-sm text-stone-500 mb-2">{coupon.description}</p>
+                                 {coupon.description && (
+                                     <p className="text-sm text-stone-500 mb-2 whitespace-pre-wrap">{coupon.description}</p>
+                                 )}
+                                 {coupon.url && (
+                                     <a 
+                                         href={coupon.url} 
+                                         target="_blank" 
+                                         rel="noopener noreferrer"
+                                         className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium mb-2"
+                                         onClick={(e) => e.stopPropagation()}
+                                     >
+                                         <ExternalLink size={12} />
+                                         <span>開啟連結</span>
+                                     </a>
+                                 )}
                                  {coupon.expiryDate && (
                                      <div className="inline-flex items-center gap-1 text-[10px] bg-stone-100 px-2 py-0.5 rounded text-stone-500">
                                          <Calendar size={10} />
